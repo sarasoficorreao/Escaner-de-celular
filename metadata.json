@@ -1,0 +1,6 @@
+{
+  "name": "FolioScan",
+  "description": "Escáner de documentos con encuadre de perspectiva, filtros de mejora de alta calidad y exportación o envío directo en PDF sin alterar los datos.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
