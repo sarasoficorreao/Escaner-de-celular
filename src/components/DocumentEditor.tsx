@@ -15,6 +15,7 @@ import {
   RotateCw,
   Send,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
 } from 'lucide-react';
 import {
@@ -137,6 +138,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       corners?: QuadCorners;
       filter?: FilterMode;
       adjustments?: ScanAdjustments;
+      autoEnhance?: boolean;
+      superResolution?: boolean;
     }
   ) => {
     const target = doc.pages.find((p) => p.id === pageId);
@@ -146,6 +149,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const nextCorners = updates.corners ?? target.corners;
     const nextFilter = updates.filter ?? target.filter;
     const nextAdjustments = updates.adjustments ?? target.adjustments;
+    const nextAutoEnhance = updates.autoEnhance ?? target.autoEnhance ?? true;
+    const nextSuperResolution = updates.superResolution ?? target.superResolution ?? false;
 
     setIsProcessing(true);
     try {
@@ -154,7 +159,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         nextRotation,
         nextCorners,
         nextFilter,
-        nextAdjustments
+        nextAdjustments,
+        {
+          autoEnhance: nextAutoEnhance,
+          superResolution: nextSuperResolution,
+        }
       );
 
       const updatedPages = doc.pages.map((p) =>
@@ -165,6 +174,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               corners: nextCorners,
               filter: nextFilter,
               adjustments: nextAdjustments,
+              autoEnhance: nextAutoEnhance,
+              superResolution: nextSuperResolution,
+              autoEnhanceSummary: result.autoEnhanceSummary,
               processedDataUrl: result.dataUrl,
               processedWidth: result.width,
               processedHeight: result.height,
@@ -184,6 +196,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const handleApplyFilterToAll = async () => {
     if (!activePage || doc.pages.length < 2) return;
+    const useAuto = activePage.autoEnhance ?? true;
+    const useSuperRes = activePage.superResolution ?? false;
+
     setIsProcessing(true);
     try {
       const updatedPages: ScannedPage[] = [];
@@ -193,12 +208,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           page.rotation,
           page.corners,
           activePage.filter,
-          activePage.adjustments
+          activePage.adjustments,
+          {
+            autoEnhance: useAuto,
+            superResolution: useSuperRes,
+          }
         );
         updatedPages.push({
           ...page,
           filter: activePage.filter,
           adjustments: { ...activePage.adjustments },
+          autoEnhance: useAuto,
+          superResolution: useSuperRes,
+          autoEnhanceSummary: res.autoEnhanceSummary,
           processedDataUrl: res.dataUrl,
           processedWidth: res.width,
           processedHeight: res.height,
@@ -209,7 +231,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         pages: updatedPages,
         updatedAt: Date.now(),
       });
-      showToast('success', 'Filtro aplicado a todas las páginas del documento.');
+      showToast('success', 'Filtro y mejora aplicados a todas las páginas.');
     } finally {
       setIsProcessing(false);
     }
@@ -737,6 +759,65 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 <p className="text-xs text-slate-500 mb-4">
                   {FILTER_PRESETS.find((f) => f.id === activePage.filter)?.description}
                 </p>
+
+                {/* Automatic Clarity & Super-Resolution Controls */}
+                <div className="pt-4 border-t border-slate-100 space-y-2.5 mb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                      <Sparkles className="w-3.5 h-3.5 text-teal-700" />
+                      Restauración automática de calidad
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={activePage.autoEnhance ?? true}
+                      disabled={isProcessing}
+                      onClick={() =>
+                        reprocessAndSavePage(activePage.id, {
+                          autoEnhance: !(activePage.autoEnhance ?? true),
+                        })
+                      }
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                        (activePage.autoEnhance ?? true)
+                          ? 'bg-teal-700 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {(activePage.autoEnhance ?? true) ? 'Activada' : 'Desactivada'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-slate-700">
+                      Alta definición (Súper-resolución)
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={activePage.superResolution ?? false}
+                      disabled={isProcessing}
+                      onClick={() =>
+                        reprocessAndSavePage(activePage.id, {
+                          superResolution: !(activePage.superResolution ?? false),
+                          autoEnhance: true,
+                        })
+                      }
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                        activePage.superResolution
+                          ? 'bg-teal-700 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {activePage.superResolution ? '2× Activa' : 'Automática'}
+                    </button>
+                  </div>
+
+                  {activePage.autoEnhanceSummary && (
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Aplicado: {activePage.autoEnhanceSummary}
+                    </p>
+                  )}
+                </div>
 
                 {/* Fine-Tune Sliders */}
                 <div className="pt-4 border-t border-slate-100 space-y-3">

@@ -160,7 +160,11 @@ export default function App() {
             rotation,
             corners,
             page.filter,
-            page.adjustments
+            page.adjustments,
+            {
+              autoEnhance: page.autoEnhance ?? true,
+              superResolution: page.superResolution ?? false,
+            }
           );
           const updatedDoc: ScanDocument = {
             ...doc,
@@ -170,6 +174,7 @@ export default function App() {
                     ...p,
                     rotation,
                     corners,
+                    autoEnhanceSummary: processed.autoEnhanceSummary,
                     processedDataUrl: processed.dataUrl,
                     processedWidth: processed.width,
                     processedHeight: processed.height,
@@ -184,13 +189,17 @@ export default function App() {
         return;
       }
 
-      // Append mode
+      // Append mode: automatically runs AI restoration + super-resolution
       const processed = await processScannedPage(
         currentUrl,
         rotation,
         corners,
         'magic',
-        DEFAULT_ADJUSTMENTS
+        DEFAULT_ADJUSTMENTS,
+        {
+          autoEnhance: true,
+          superResolution: false,
+        }
       );
 
       const newPage: ScannedPage = {
@@ -202,6 +211,9 @@ export default function App() {
         corners,
         filter: 'magic',
         adjustments: { ...DEFAULT_ADJUSTMENTS },
+        autoEnhance: true,
+        superResolution: false,
+        autoEnhanceSummary: processed.autoEnhanceSummary,
         processedDataUrl: processed.dataUrl,
         processedWidth: processed.width,
         processedHeight: processed.height,

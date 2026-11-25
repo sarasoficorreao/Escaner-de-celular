@@ -31,6 +31,12 @@ export interface ScannedPage {
   filter: FilterMode;
   /** Manual fine-tuning adjustments */
   adjustments: ScanAdjustments;
+  /** Whether automatic clarity & restoration enhancement is active */
+  autoEnhance?: boolean;
+  /** Whether adaptive 2x super-resolution upscaling is active */
+  superResolution?: boolean;
+  /** Human-readable summary of automatic enhancements applied */
+  autoEnhanceSummary?: string;
   /** High-resolution processed scan data URL (perspective-corrected + filtered) */
   processedDataUrl: string;
   /** Processed output dimensions */

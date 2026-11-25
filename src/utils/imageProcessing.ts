@@ -1,4 +1,5 @@
 import { FilterMode, Point, QuadCorners, ScanAdjustments } from '../types/scanner';
+import { runAutoQualityRestoration } from './aiEnhancer';
 
 /**
  * Loads an HTMLImageElement from a data URL or object URL.
@@ -822,7 +823,8 @@ export function applyDocumentEnhancement(
 }
 
 /**
- * Full pipeline: loads original image, rotates, rectifies perspective, and applies filter.
+ * Full pipeline: loads original image, rotates, rectifies perspective,
+ * runs automatic quality restoration (super-resolution, denoise, deblur), and applies filter.
  */
 export async function processScannedPage(
   originalDataUrl: string,
@@ -830,17 +832,43 @@ export async function processScannedPage(
   corners: QuadCorners,
   filter: FilterMode,
   adjustments: ScanAdjustments,
-  maxEdge = 1900
-): Promise<{ dataUrl: string; width: number; height: number }> {
+  options: {
+    maxEdge?: number;
+    autoEnhance?: boolean;
+    superResolution?: boolean;
+  } = {}
+): Promise<{
+  dataUrl: string;
+  width: number;
+  height: number;
+  autoEnhanceSummary: string;
+}> {
+  const maxEdge = options.maxEdge ?? 2000;
+  const autoEnhance = options.autoEnhance ?? true;
+  const superResolution = options.superResolution ?? false;
+
   const img = await loadImage(originalDataUrl);
   const rotated = createRotatedCanvas(img, rotation, 2600);
   const warped = warpPerspectiveCanvas(rotated, corners, maxEdge);
-  const enhanced = applyDocumentEnhancement(warped, filter, adjustments);
+
+  const restored = runAutoQualityRestoration(warped, {
+    autoEnhance,
+    superResolution,
+  });
+
+  const enhanced = applyDocumentEnhancement(
+    restored.canvas,
+    filter,
+    adjustments
+  );
 
   return {
-    dataUrl: enhanced.toDataURL('image/jpeg', 0.92),
+    dataUrl: enhanced.toDataURL('image/jpeg', 0.93),
     width: enhanced.width,
     height: enhanced.height,
+    autoEnhanceSummary: autoEnhance
+      ? restored.analysis.summaryParts.join(' · ')
+      : 'Mejora automática desactivada',
   };
 }
 
